@@ -89,7 +89,7 @@ if __name__ == '__main__':
     print('use_cuda:', use_cuda, '\ndevice:', device)
     os.environ["CUDA_VISIBLE_DEVICES"] = '0, 1, 2, 3'
     # os.environ["CUDA_VISIBLE_DEVICES"] = '0'
-    kwargs = {'num_workers': 0, 'pin_memory': True} if use_cuda else {}
+    kwargs = {'num_workers': 12, 'pin_memory': True} if use_cuda else {}
     train_compose_list, val_compose_list = compose_train_transform_list(config.augmentation_options)
     train_transforms = A.Compose(train_compose_list)
     val_transforms = A.Compose(val_compose_list)
@@ -137,6 +137,8 @@ if __name__ == '__main__':
             model_tea = call_resnext50_32x4d()
         elif config.teacher_model == 'resnet18':
             model_tea = call_resnet18()
+        else:
+            model_tea = eval(config.teacher_model)()
         model_tea = model_tea.to(device)
 
     modelsummary(model)

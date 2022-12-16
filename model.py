@@ -124,6 +124,60 @@ class Net(nn.Module):
         out = self.output(x).squeeze()
         return out
 
+class Net_deeper(nn.Module):
+    def __init__(self):
+        super(Net_deeper, self).__init__()
+        if config.isColor:
+            self.cbr1 = ConvBlock(pan_in=3, pan_out=16)
+        else:
+            self.cbr1 = ConvBlock(pan_in=1, pan_out=16)
+        self.att1 = SE_Block(16, 4)
+        self.cbr2 = ConvBlock(pan_in=16, pan_out=32)
+        self.cbr2_1 = ConvBlock(pan_in=32, pan_out=32)
+        self.att2 = SE_Block(32, 4)
+        self.cbr3 = ConvBlock(pan_in=32, pan_out=32, is_pool=True)
+        self.att0 = SE_Block(32, 4)
+        self.cbr4 = ConvBlock(pan_in=32, pan_out=32)
+        self.cbr4_1 = ConvBlock(pan_in=32, pan_out=32)
+        self.att4 = SE_Block(32, 4)
+        self.cbr5 = ConvBlock(pan_in=32, pan_out=64, is_pool=True)
+        self.att00 = SE_Block(64, 4)
+        self.cbr6 = ConvBlock(pan_in=64, pan_out=128)
+        self.cbr6_1 = ConvBlock(pan_in=128, pan_out=256)
+        self.att6 = SE_Block(256, 4)
+        self.cbr7 = ConvBlock(pan_in=256, pan_out=512, is_pool=True)
+        self.cbr8 = ConvBlock(pan_in=512, pan_out=512)
+        #self.att8 = SE_Block(128, 4)
+        self.cbr9 = ConvBlock(pan_in=512, pan_out=512)
+        self.conv10 = nn.Conv2d(512, config.num_classes, (1, 1))
+        self.out_activation = nn.Sigmoid()
+        self.output = nn.AdaptiveAvgPool2d(1)
+
+    def forward(self, x):
+        x = self.cbr1(x)
+        x = self.att1(x)
+        x = self.cbr2(x)
+        x = self.cbr2_1(x)
+        x = self.att2(x)
+        x = self.cbr3(x)
+        x = self.att0(x)
+        x = self.cbr4(x)
+        x = self.cbr4_1(x)
+        x = self.att4(x)
+        x = self.cbr5(x)
+        x = self.att00(x)
+        x = self.cbr6(x)
+        x = self.cbr6_1(x)
+        x = self.att6(x)
+        x = self.cbr7(x)
+        x = self.cbr8(x)
+        x = self.cbr9(x)
+        x = self.conv10(x)
+        x = self.out_activation(x)
+        out = self.output(x).squeeze()
+        return out
+
+
 class Per_patch_Fully_connected(nn.Module) :
     def __init__(self, input_size, patch_size, C) :
         super(Per_patch_Fully_connected, self).__init__()
