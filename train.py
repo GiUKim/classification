@@ -285,10 +285,11 @@ if __name__ == '__main__':
             max_avg_accuracy = accuracy
             is_save = True
             checkpoint_path = os.path.join(config.checkpoint_dir, 'model_ep_{}_loss_{:.4f}_accuracy_{:.4f}.pt'.format(epoch, test_loss, accuracy/100.))
-            torch.save({'model_state_dict':model.state_dict(),
-                       'epoch': epoch
-                        },
-                       checkpoint_path)
+            torch.save(model.state_dict(), checkpoint_path)
+#            torch.save({'model_state_dict':model.state_dict(),
+ #                      'epoch': epoch
+   #                     },
+  #                    checkpoint_path)
 
         print('='*80, '\n')
         print('Epochs: {}, Test set: Average Loss: {:4f}, Accuracy: {}/{} ({:.2f}%)\n'.format(
