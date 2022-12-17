@@ -37,8 +37,14 @@ def get_label(path):
             label = np.zeros((len(config.class_list) - 1), dtype=np.float32)
         else:
             label = np.eye(len(config.class_list) - 1, dtype=np.float32)[lbl_idx - 1]
+        if config.label_smoothing:
+            label[np.where(label < 0.5)] += config.label_smoothing_scale
+            label[np.where(label > 0.5)] -= config.label_smoothing_scale
     else:
         label = np.eye(len(config.class_list), dtype=np.float32)[lbl_idx]
+        if config.label_smoothing:
+            label[np.where(label < 0.5)] += config.label_smoothing_scale
+            label[np.where(label > 0.5)] -= config.label_smoothing_scale
     return label
 
 class Dataset(Dataset):

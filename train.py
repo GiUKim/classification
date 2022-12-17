@@ -84,6 +84,7 @@ if __name__ == '__main__':
     torch.manual_seed(1)
     no_cuda=False
     bce_loss = nn.BCELoss()
+    ale_loss = ALE_loss(gamma=config.ale_gamma)
     use_cuda = not no_cuda and torch.cuda.is_available()
     device = torch.device('cuda' if use_cuda else 'cpu')
     print('use_cuda:', use_cuda, '\ndevice:', device)
@@ -120,7 +121,8 @@ if __name__ == '__main__':
             model = model.to(device)
         else:
             model = Net().to(device)
-        if config.pretrained_model is not None:
+        print("config.pretrained_model : ", config.pretrained_model)
+        if config.pretrained_model is not None and os.path.exists(config.pretrained_model):
             model_info = torch.load(config.pretrained_model)
             model.load_state_dict(model_info['model_state_dict'])
             start_epoch = model_info['epoch'] + 1
@@ -144,15 +146,19 @@ if __name__ == '__main__':
     modelsummary(model)
     print(model)
 #    model = MLP_Mixer((1, config.width, config.height), 16, 64, 32, config.num_classes).to(device)
-    #optimizer = optim.SGD(model.parameters(), lr=config.max_lr, momentum=config.momentum)
-    optimizer = optim.Adam(model.parameters(), lr=config.max_lr)
-    scheduler = LRScheduler(optimizer, warm_up=0.5, total_epoch=config.epochs)
-#    scheduler = CosineAnnealingWarmRestarts(optimizer, T_0=10, eta_min=config.min_lr, verbose=True)
+    if config.use_custom_lr:
+        optimizer = optim.Adam(model.parameters(), lr=config.max_lr)
+        scheduler = LRScheduler(optimizer, warm_up=0.5, total_epoch=config.epochs)
+    else:
+        optimizer = optim.SGD(model.parameters(), lr=config.max_lr, momentum=config.momentum)
+        scheduler = CosineAnnealingWarmRestarts(optimizer, T_0=10, eta_min=config.min_lr, verbose=True)
     if config.knowledge_dist:
-        #optimizer_tea = optim.SGD(model_tea.parameters(), lr=config.max_lr, momentum=config.momentum)
-        optimizer_tea = optim.Adam(model_tea.parameters(), lr=config.max_lr)
-        scheduler_tea = LRScheduler(optimizer, warm_up=0.5, total_epoch=config.epochs)
-#        scheduler_tea = CosineAnnealingWarmRestarts(optimizer_tea, T_0=10, eta_min=config.min_lr, verbose=False)
+        if config.use_custom_lr:
+            optimizer_tea = optim.Adam(model_tea.parameters(), lr=config.max_lr)
+            scheduler_tea = LRScheduler(optimizer_tea, warm_up=0.5, total_epoch=config.epochs)
+        else:
+            optimizer_tea = optim.SGD(model_tea.parameters(), lr=config.max_lr, momentum=config.momentum)
+            scheduler_tea = CosineAnnealingWarmRestarts(optimizer_tea, T_0=10, eta_min=config.min_lr, verbose=False)
 
 #    scheduler = CosineAnnealingLR(optimizer, T_max=20, eta_min=config.min_lr, verbose=True)
     for epoch in range(start_epoch, config.epochs+1):
@@ -191,18 +197,29 @@ if __name__ == '__main__':
                 target = target.to(device)
 
             output = model(data)
-            output = output.squeeze(0) 
-            loss = F.binary_cross_entropy(output, target.squeeze())
-            
+            output = output.squeeze(0)
+            if config.use_ale_loss:
+                loss = ale_loss(output, target.squeeze()).mean()
+            else:
+                loss = F.binary_cross_entropy(output, target.squeeze())
+                        
             optimizer.zero_grad()
             if config.knowledge_dist:
                 optimizer_tea.zero_grad()
                 output_tea = model_tea(data_tea)
-                loss_tea = F.binary_cross_entropy(output_tea, target.squeeze())
-#                loss_tea = bce_loss(output_tea, target.squeeze())
+                #loss_tea = F.binary_cross_entropy(output_tea, target.squeeze())
+                if config.use_ale_loss:
+                    loss_tea = ale_loss(output_tea, target.squeeze()).mean()
+                else:
+                    loss_tea = F.binary_cross_entropy(output_tea, target.squeeze())
+                    #loss_tea = bce_loss(output_tea, target.squeeze())
                 output_tea = output_tea.detach()
                 output_tea.requires_grad = False
-                loss_dist = F.binary_cross_entropy(output, output_tea)
+                if config.use_ale_loss:
+                    loss_dist = ale_loss(output, output_tea).mean()
+                else:
+                    loss_dist = F.binary_cross_entropy(output, output_tea)
+
                 #loss_dist = bce_loss(output, output_tea)
                 loss += loss_dist
                 org_loss = loss - loss_dist
@@ -237,6 +254,8 @@ if __name__ == '__main__':
                 output = output.squeeze(0)
                 #if config.has_unknown and len(config.class_list) == 2:
                 #    output = output.view(len(output), 1)
+                if config.use_ale_loss:
+                    test_loss += ale_loss(output, target.squeeze()).sum().item()
                 test_loss += F.binary_cross_entropy(output, target.squeeze(), reduction='sum').item()
                 for idx in range(0, len(target)):
                     pred = output[idx]

@@ -7,6 +7,7 @@ from glob import glob
 import math
 from PIL import Image
 import cv2
+from torch.optim.lr_scheduler import _LRScheduler
 import numpy as np 
 config = Config()
 
@@ -262,7 +263,7 @@ class LRScheduler(torch.optim.lr_scheduler.LambdaLR):
             print('\n', 'LR:', optimizer.param_groups[0]['lr'], '\n')
             warm_up_epoch = total_epoch * warm_up
             if step < total_epoch * warm_up:
-                return ((math.cos(((step * math.pi) / warm_up_epoch) + math.pi) + 1.0) * 0.5)
+                return ((math.cos(((step * math.pi) / warm_up_epoch) + math.pi) + 1.0) * 0.5) 
             elif total_epoch * 0.8 < step <= total_epoch * 0.9:
                 return decay
             elif step > total_epoch * 0.9:
@@ -271,5 +272,12 @@ class LRScheduler(torch.optim.lr_scheduler.LambdaLR):
                 return 1.0
         super(LRScheduler, self).__init__(optimizer, lr_lambda, last_epoch=last_epoch)
 
-
+import torch.nn as nn
+class ALE_loss(nn.Module):
+    def __init__(self, gamma=0.0):
+        super(ALE_loss, self).__init__()
+        self.gamma = gamma
+    def forward(self, output, target):
+        absval = torch.abs(output - target)
+        return -(torch.log(1. - absval)) * (absval ** self.gamma)
 

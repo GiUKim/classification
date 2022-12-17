@@ -19,7 +19,8 @@ class Config:
         self.val_dir = self.info['VAL_PATH']
         ckpt_dir = self.info['CHECKPOINT_PATH']
         self.pretrained_model = self.info['PRETRAINED_MODEL_PATH']
-        self.init_best_accuracy_for_pretrained_model = self.info['INIT_BEST_ACCURACY_FOR_PRETRAINED_MODEL']     #### best accuracy 0으로 초기화 할 것인지? -> validation 데이터 추가되면 True, 그대로면 False
+        self.init_best_accuracy_for_pretrained_model = self.info[
+         'INIT_BEST_ACCURACY_FOR_PRETRAINED_MODEL']  #### best accuracy 0으로 초기화 할 것인지? -> validation 데이터 추가되면 True, 그대로면 False
         self.min_lr = self.info['MIN_LEARNING_RATE']
         self.max_lr = self.info['MAX_LEARNING_RATE']
         self.momentum = self.info['MOMENTUM']
@@ -29,6 +30,7 @@ class Config:
         self.height = self.info['HEIGHT']
         self.evaluate_threshold = self.info['EVALUATE_UNKNOWN_THRESHOLD']
         self.label_smoothing = self.info['LABEL_SMOOTHING']
+        self.label_smoothing_scale = self.info['LABEL_SMOOTHING_SCALE']
         self.augmentation_options = {
                     'center_crop': self.info['CENTER_CROP'],                        # 이미지 한가운데 80% 영역만 크롭
                     'horizontal_flip': self.info['HORIZONTAL_FLIP'],                    # 좌우 반전
@@ -42,11 +44,14 @@ class Config:
                     'custom_lattepyo': self.info['CUSTOM_LATTEPYO']                     # custom aug
                 }
         self.smoothing_scale = self.info['LABEL_SMOOTHING_SCALE']
+        self.ale_gamma = self.info['ALE_LOSS_FOCAL_GAMMA_SCALE']
         self.epochs = self.info['EPOCHS']
         self.log_interval = self.info['LOG_INTERVAL']
         self.dim = self.info['DIM']
         self.isColor = self.info['IS_COLOR']
         self.DEBUG_MODE = self.info['DEBUG_MODE']
+        self.use_custom_lr = self.info['USE_CUSTOM_LR']
+        self.use_ale_loss = self.info['USE_ALE_LOSS']
 
         # use resnet18 layer (10M parameter)
         self.use_res18 = self.info['USE_RESNET18']
@@ -64,8 +69,9 @@ class Config:
         # predict model parameter
         self.predict_src_path = self.info['PREDICT_SOURCE_PATH']
         self.predict_dst_path = self.info['PREDICT_DESTINATION_PATH']
-        self.predict_confidence_divide = self.info['PREDICT_CONFIDENCE_DIVIDE_RULE']  # edit here -> ex) OVER 0, 10, 30, 60, 90
-        self.predict_pretrained_model_path = self.info['PREDICT_PRETRAINED_MODEL_PATH']    
+        self.predict_confidence_divide = self.info[
+         'PREDICT_CONFIDENCE_DIVIDE_RULE']  # edit here -> ex) OVER 0, 10, 30, 60, 90
+        self.predict_pretrained_model_path = self.info['PREDICT_PRETRAINED_MODEL_PATH']
         self.predict_remove_exist_dir = self.info['PREDICT_REMOVE_DIRECTORY_TREE']
         self.predict_verbose_score = self.info['PREDICT_VERBOSE_SCORE']  # 저장된 이미지 이름에 스코어 표시?
         
@@ -74,12 +80,16 @@ class Config:
 
 
         # 수정 X
+        if self.train_dir[-1] != '/':
+            self.train_dir += '/'
+        if self.val_dir[-1] != '/':
+            self.val_dir += '/'
         self.checkpoint_dir = ckpt_dir
         self.train_paths = glob(self.train_dir + '*/*.jpg')
         self.test_paths = glob(self.val_dir + '*/*.jpg')
         self.predict_confidence_divide = [0.0] + self.predict_confidence_divide + [1.0 + 1e-5]
-        
-        self.class_list = sorted([f.split('/')[-1] for f in glob(self.train_dir+'*')])
+
+        self.class_list = sorted([f.split('/')[-1] for f in glob(self.train_dir + '*')])
         self.class_list_without_unknown = sorted(list(set(self.class_list) - set(['unknown'])))
         self.has_unknown = 'unknown' in self.class_list
         self.unknown_idx, self.num_classes = self.get_unknown_idx_num_classes()
