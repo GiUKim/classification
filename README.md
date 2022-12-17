@@ -1,4 +1,4 @@
-origin source from [ https://github.com/inzapp/sigmoid-classifier ]
+## origin Keras source from [ https://github.com/inzapp/sigmoid-classifier ]
 
 *** 
 Modify .config file
