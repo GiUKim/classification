@@ -144,11 +144,15 @@ if __name__ == '__main__':
     modelsummary(model)
     print(model)
 #    model = MLP_Mixer((1, config.width, config.height), 16, 64, 32, config.num_classes).to(device)
-    optimizer = optim.SGD(model.parameters(), lr=config.max_lr, momentum=config.momentum)
-    scheduler = CosineAnnealingWarmRestarts(optimizer, T_0=10, eta_min=config.min_lr, verbose=True)
+    #optimizer = optim.SGD(model.parameters(), lr=config.max_lr, momentum=config.momentum)
+    optimizer = optim.Adam(model.parameters(), lr=config.max_lr)
+    scheduler = LRScheduler(optimizer, warm_up=0.5, total_epoch=config.epochs)
+#    scheduler = CosineAnnealingWarmRestarts(optimizer, T_0=10, eta_min=config.min_lr, verbose=True)
     if config.knowledge_dist:
-        optimizer_tea = optim.SGD(model_tea.parameters(), lr=config.max_lr, momentum=config.momentum)
-        scheduler_tea = CosineAnnealingWarmRestarts(optimizer_tea, T_0=10, eta_min=config.min_lr, verbose=False)
+        #optimizer_tea = optim.SGD(model_tea.parameters(), lr=config.max_lr, momentum=config.momentum)
+        optimizer_tea = optim.Adam(model_tea.parameters(), lr=config.max_lr)
+        scheduler_tea = LRScheduler(optimizer, warm_up=0.5, total_epoch=config.epochs)
+#        scheduler_tea = CosineAnnealingWarmRestarts(optimizer_tea, T_0=10, eta_min=config.min_lr, verbose=False)
 
 #    scheduler = CosineAnnealingLR(optimizer, T_max=20, eta_min=config.min_lr, verbose=True)
     for epoch in range(start_epoch, config.epochs+1):

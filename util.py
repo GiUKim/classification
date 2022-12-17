@@ -4,6 +4,7 @@ from matplotlib import pyplot as plt
 import random
 import torch
 from glob import glob
+import math
 from PIL import Image
 import cv2
 import numpy as np 
@@ -253,4 +254,22 @@ def visualize(model, epoch, accuracy):
     display_class_num = get_display_class_num()
     display_class_list = random.sample(config.class_list_without_unknown, display_class_num)
     visualize_grad_cam(display_class_list, display_class_num, value, model, epoch, accuracy)
+
+class LRScheduler(torch.optim.lr_scheduler.LambdaLR):
+    def __init__(self, optimizer, warm_up=0.1, decay=0.1, total_epoch=100, last_epoch=-1):
+        def lr_lambda(step):
+            step += 1
+            print('\n', 'LR:', optimizer.param_groups[0]['lr'], '\n')
+            warm_up_epoch = total_epoch * warm_up
+            if step < total_epoch * warm_up:
+                return ((math.cos(((step * math.pi) / warm_up_epoch) + math.pi) + 1.0) * 0.5)
+            elif total_epoch * 0.8 < step <= total_epoch * 0.9:
+                return decay
+            elif step > total_epoch * 0.9:
+                return decay ** 2
+            else:
+                return 1.0
+        super(LRScheduler, self).__init__(optimizer, lr_lambda, last_epoch=last_epoch)
+
+
 
